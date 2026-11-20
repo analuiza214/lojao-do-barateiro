@@ -1,11 +1,15 @@
 // Lojão do Barateiro — Cloudflare Worker
-// Handles API routes (/api/*) and falls through to static assets for everything else.
+// Todas as variáveis são lidas dinamicamente do objeto `env` configurado no painel da Cloudflare.
+// Nenhuma chave, credencial ou e-mail fica exposto no código ou no GitHub.
 
-const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
+const JSON_HEADERS = {
+  'Content-Type': 'application/json; charset=utf-8',
+  'Cache-Control': 'no-store'
+};
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
 const digits = (value) => String(value || '').replace(/\D/g, '');
 
-// Product catalog (inlined at build time via esbuild)
+// Catálogo de produtos (embutido na compilação)
 import catalog from '../catalog-data.json';
 const { products, categories } = catalog;
 
@@ -31,8 +35,15 @@ async function shipping(cep) {
     const data = await r.json();
     if (data.erro) return json({ error: 'CEP não encontrado' }, 404);
     return json({
-      address: { cep: data.cep, street: data.logradouro, district: data.bairro, city: data.localidade, state: data.uf },
-      price: 0, days: 7,
+      address: {
+        cep: data.cep,
+        street: data.logradouro,
+        district: data.bairro,
+        city: data.localidade,
+        state: data.uf
+      },
+      price: 0,
+      days: 7,
       label: 'Frete grátis (prazo estimado: 3 a 7 dias úteis)'
     });
   } catch {
@@ -40,16 +51,22 @@ async function shipping(cep) {
   }
 }
 
-async function handleOrder(request) {
+async function handleOrder(request, env) {
   const { items, customer, address, paymentMethod } = await request.json();
   const required = ['name', 'email', 'cpf', 'phone'];
-  if (!customer || required.some(k => !String(customer[k] || '').trim()))
+  if (!customer || required.some(k => !String(customer[k] || '').trim())) {
     return json({ error: 'Dados do cliente incompletos' }, 400);
-  if (!address || !String(address.cep || '').trim() || !String(address.street || '').trim())
+  }
+  if (!address || !String(address.cep || '').trim() || !String(address.street || '').trim()) {
     return json({ error: 'Endereço incompleto' }, 400);
+  }
 
   const { lines, total } = priceItems(items);
   const id = crypto.randomUUID();
+
+  // Lê variáveis do painel da Cloudflare caso configuradas (env.*)
+  const provider = paymentMethod || env.PAYMENT_PROVIDER || 'pix';
+
   const order = {
     id,
     createdAt: new Date().toISOString(),
@@ -58,11 +75,20 @@ async function handleOrder(request) {
     total,
     customer,
     address,
-    payment: { provider: paymentMethod || 'pix', status: 'aguardando_pagamento' }
+    payment: {
+      provider,
+      status: 'aguardando_pagamento'
+    }
   };
 
-  // TODO: Store in KV or D1 when ready
-  // await env.ORDERS_KV.put(`order:${id}`, JSON.stringify(order));
+  // Se você vincular um KV (ORDERS_KV) no painel da Cloudflare, salva o pedido:
+  if (env.ORDERS_KV) {
+    try {
+      await env.ORDERS_KV.put(`order:${id}`, JSON.stringify(order));
+    } catch (e) {
+      console.error('Erro ao salvar no KV:', e);
+    }
+  }
 
   return json({ id: order.id, total, status: order.status, payment: order.payment }, 201);
 }
@@ -72,9 +98,8 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // ── API Routes ──
+    // ── Rotas de API ──
     if (path.startsWith('/api/')) {
-      // CORS preflight
       if (request.method === 'OPTIONS') {
         return new Response(null, {
           headers: {
@@ -87,14 +112,17 @@ export default {
       }
 
       try {
-        if (request.method === 'GET' && path === '/api/products')
+        if (request.method === 'GET' && path === '/api/products') {
           return json({ products, categories });
+        }
 
-        if (request.method === 'GET' && path === '/api/shipping')
+        if (request.method === 'GET' && path === '/api/shipping') {
           return shipping(url.searchParams.get('cep') || '');
+        }
 
-        if (request.method === 'POST' && path === '/api/orders')
-          return handleOrder(request);
+        if (request.method === 'POST' && path === '/api/orders') {
+          return handleOrder(request, env);
+        }
 
         return json({ error: 'Rota não encontrada' }, 404);
       } catch (e) {
@@ -102,13 +130,11 @@ export default {
       }
     }
 
-    // ── Static assets are served by the Cloudflare Assets binding ──
-    // Redirect root to index.html so the SPA hash router works
+    // ── Arquivos Estáticos servidos pelo Cloudflare Assets ──
     if (path === '/') {
       return env.ASSETS.fetch(new Request(new URL('/index.html', request.url), request));
     }
 
-    // Fall through to static assets
     return env.ASSETS.fetch(request);
   }
 };

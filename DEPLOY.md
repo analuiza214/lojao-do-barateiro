@@ -1,28 +1,31 @@
 # 🚀 Como publicar o Lojão do Barateiro no Cloudflare Workers
 
-Este projeto foi totalmente convertido e configurado para rodar no **Cloudflare Workers com Assets Estáticos**, exatamente no mesmo padrão da sua loja de referência.
+O projeto está 100% limpo, sem nenhuma variável, segredo, chave ou e-mail pessoal exposto no código ou nos arquivos de configuração.
 
 ---
 
-## 📁 Estrutura do Projeto
+## 🔒 Segurança e Variáveis de Ambiente
 
-- `worker-src/index.js`: Código do Worker responsável pelas rotas de API (`/api/products`, `/api/shipping`, `/api/orders`) e pelo roteamento dos arquivos estáticos.
-- `wrangler.jsonc`: Configuração oficial do Cloudflare Workers apontando para a pasta `./dist`.
-- `build-worker.mjs`: Script de compilação do Worker (com fallback standalone caso o esbuild não esteja instalado).
-- `scripts/prepare-deploy.mjs`: Prepara a pasta `dist/` com todos os arquivos estáticos (`index.html`, `app.js`, `catalog.js`, `styles.css`, `mercado-pago.png`, `assets/`).
-- `.github/workflows/deploy.yml`: Ação automática do GitHub Actions para publicar no Cloudflare a cada push.
-- `.gitignore`: Ignora `node_modules`, `dist` e arquivos temporários.
+Ao contrário de projetos que deixam tokens ou e-mails escritos no arquivo `wrangler.jsonc`, **aqui nada foi exposto**:
+
+- **No GitHub:** Você sobe apenas o código-fonte puro.
+- **No Cloudflare:** Toda e qualquer variável que você precisar configurar é adicionada diretamente no painel da Cloudflare em:
+  👉 **Workers & Pages** > Selecione seu Worker > **Settings** > **Variables and Secrets**
+  - **Variables (Texto):** Para URLs públicas, nomes de configuração, etc.
+  - **Secrets (Criptografado):** Para tokens de gateway, chaves de webhook, credenciais de API, etc.
+- **No código (`worker-src/index.js`):** O Worker lê automaticamente qualquer variável que você criar através do objeto `env` (exemplo: `env.PAYMENT_PROVIDER`, `env.ORDERS_KV`, etc.).
+- **No `.gitignore`:** Arquivos `.env`, `.env.*`, `secrets.*`, `dist/` e `node_modules/` estão bloqueados para nunca serem commitados por acidente.
 
 ---
 
-## 1️⃣ Subir para o GitHub
+## 1️⃣ Subir para o seu GitHub
 
-No terminal (PowerShell ou Git Bash) dentro da pasta do projeto (`C:\Users\welli\Desktop\Lojão do Barateiro`):
+No terminal (PowerShell ou Git Bash) na pasta do projeto:
 
 ```bash
 git init
 git add .
-git commit -m "feat: projeto convertido para Cloudflare Workers"
+git commit -m "feat: projeto convertido para cloudflare workers sem variaveis expostas"
 git branch -M main
 git remote add origin https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
 git push -u origin main
@@ -30,35 +33,28 @@ git push -u origin main
 
 ---
 
-## 2️⃣ Opções de Publicação
+## 2️⃣ Conectar e Publicar no Cloudflare Workers
 
-### Opção A: Automático pelo GitHub Actions (Recomendado)
-1. Crie o repositório no GitHub e envie o código.
-2. No repositório do GitHub, vá em **Settings** > **Secrets and variables** > **Actions** e adicione duas Secrets:
-   - `CLOUDFLARE_API_TOKEN`: Seu token de API da Cloudflare com permissão de Workers.
-   - `CLOUDFLARE_ACCOUNT_ID`: O ID da sua conta Cloudflare (disponível na barra lateral do painel).
-3. Cada `git push` no branch `main` irá compilar e publicar automaticamente. Você também pode disparar manualmente na aba **Actions** > **Run workflow**.
-
----
-
-### Opção B: Publicar direto pelo Terminal com Wrangler
-Se você já tiver o login da Cloudflare no seu computador:
-
-```bash
-# 1. Gerar os arquivos de publicação
-npm run build
-
-# 2. Publicar na Cloudflare
-npx wrangler deploy --config wrangler.jsonc
-```
-
----
-
-### Opção C: Pelo Painel Web da Cloudflare
-1. Acesse o painel da Cloudflare > **Compute (Workers & Pages)** > **Create application** > **Pages** (ou Workers).
-2. Conecte ao seu repositório do GitHub.
-3. Configure o build:
-   - **Framework preset**: None
+### Método Recomendado (Direto pelo Painel Cloudflare - Conexão com Git)
+1. Acesse o painel da [Cloudflare](https://dash.cloudflare.com/)
+2. Vá em **Compute (Workers & Pages)** > **Create application** > aba **Pages** (ou Workers) > **Connect to Git**.
+3. Selecione o seu repositório recém-criado no GitHub.
+4. Defina as configurações de build:
+   - **Framework preset**: `None`
    - **Build command**: `npm run build`
    - **Build output directory**: `dist`
-4. Clique em **Save and Deploy**.
+5. Na seção **Environment variables**, se quiser adicionar variáveis agora, adicione-as lá. Caso contrário, finalize e adicione depois em **Settings** > **Variables and Secrets**.
+6. Clique em **Save and Deploy**.
+
+A cada commit novo que você enviar para o GitHub, a Cloudflare recompilará e atualizará seu site automaticamente.
+
+---
+
+### Método Alternativo (Via Terminal / Wrangler)
+Se preferir publicar direto pela linha de comando:
+
+```bash
+npm run build
+npx wrangler deploy --config wrangler.jsonc
+```
+*(As variáveis de ambiente podem ser criadas com `npx wrangler secret put NOME_DA_VARIAVEL` ou diretamente no painel web).*
