@@ -1,0 +1,347 @@
+{
+  "products": [
+    {
+      "id": "escada-telescopica",
+      "image": "escada-telescopica.webp",
+      "name": "Escada Telescópica Inox de 3 a 7 Metros Antiderrapante",
+      "old": 399.9,
+      "price": 127.9,
+      "category": 2,
+      "variants": [
+        [
+          "3 Metros",
+          127.9
+        ],
+        [
+          "5 Metros",
+          159.9
+        ],
+        [
+          "7 Metros",
+          177.9
+        ]
+      ]
+    },
+    {
+      "id": "maquina-solda",
+      "image": "maquina-solda.webp",
+      "name": "Máquina Inversora de Solda MIG Sem Gás 130A 3 em 1 TIG Lift Kit Completo",
+      "old": 249.9,
+      "price": 109.9,
+      "category": 3,
+      "variants": [
+        [
+          "Padrão",
+          109.9
+        ]
+      ]
+    },
+    {
+      "id": "parafusadeira",
+      "image": "parafusadeira.webp",
+      "name": "Parafusadeira Furadeira de Impacto 21V The Black Tools + Kit Completo 136 Peças com Maleta",
+      "old": 390,
+      "price": 89.9,
+      "category": 1,
+      "variants": [
+        [
+          "Padrão",
+          89.9
+        ]
+      ]
+    },
+    {
+      "id": "pistola-deko",
+      "image": "pistola-deko.webp",
+      "name": "Pistola de Pintura Pulverizadora HVLP Elétrica 550W 110V/220V Deko",
+      "old": 199.9,
+      "price": 89.9,
+      "category": 1,
+      "variants": [
+        [
+          "Padrão",
+          89.9
+        ]
+      ]
+    },
+    {
+      "id": "esmerilhadeira-kit",
+      "image": "esmerilhadeira-kit.webp",
+      "name": "Esmerilhadeira Lixadeira Angular 780W com Kit de Soquetes 40 Peças",
+      "old": 265,
+      "price": 109.9,
+      "category": 1,
+      "variants": [
+        [
+          "Padrão",
+          109.9
+        ]
+      ]
+    },
+    {
+      "id": "pistola-pulverizadora-48v",
+      "image": "pistola-pulverizadora-48v.webp",
+      "name": "Pistola de Pintura 48V 800ml – Pulverizador Portátil Alta Pressão",
+      "old": 497.99,
+      "price": 97.9,
+      "category": 1,
+      "variants": [
+        [
+          "Padrão",
+          97.9
+        ]
+      ]
+    },
+    {
+      "id": "kit-4em1-48v",
+      "image": "kit-4em1-48v.webp",
+      "name": "Kit 4 em 1 Ferramentas 48V – Martelete, Esmerilhadeira, Parafusadeira e Chave de Impacto",
+      "old": 639.99,
+      "price": 147.9,
+      "category": 1,
+      "variants": [
+        [
+          "Padrão",
+          147.9
+        ]
+      ]
+    },
+    {
+      "id": "lavadora-portatil",
+      "image": "lavadora-portatil.webp",
+      "name": "Lavadora Lava Jato Portátil Pressão 2 Baterias + Maleta",
+      "old": 589.9,
+      "price": 127.9,
+      "category": 1,
+      "variants": [
+        [
+          "Padrão",
+          127.9
+        ]
+      ]
+    },
+    {
+      "id": "camera-ptz-dupla",
+      "image": "camera-ptz-dupla.webp",
+      "name": "Câmera Externa PTZ WIFI Lente Dupla 2MP+2MP Rastreamento Automático",
+      "old": 359.6,
+      "price": 89.9,
+      "category": 4,
+      "variants": [
+        [
+          "Padrão",
+          89.9
+        ]
+      ]
+    },
+    {
+      "id": "escorredor-loucas-suspenso",
+      "image": "escorredor-loucas-suspenso.webp",
+      "name": "Escorredor de Louça Suspenso Aço Inoxidável Organizador de Cozinha com 2 Níveis",
+      "old": 299.9,
+      "price": 89.9,
+      "category": 4,
+      "variants": [
+        [
+          "Padrão",
+          89.9
+        ]
+      ]
+    },
+    {
+      "id": "churrasqueira-eletrica-2em1",
+      "image": "churrasqueira-eletrica-2em1.webp",
+      "name": "Churrasqueira Elétrica 2 em 1 Chapa e Grelha Antiaderente + Kit Churrasco",
+      "old": 679.9,
+      "price": 109.9,
+      "category": 4,
+      "variants": [
+        [
+          "Padrão",
+          109.9
+        ]
+      ]
+    },
+    {
+      "id": "motosserra-gasolina-52cc",
+      "image": "motosserra-gasolina-52cc.webp",
+      "name": "Motosserra a Gasolina DEWEN 52cc Barra 20 Polegadas 3.0HP",
+      "old": 699,
+      "price": 137.9,
+      "category": 2,
+      "variants": [
+        [
+          "Padrão",
+          137.9
+        ]
+      ]
+    },
+    {
+      "id": "macaco-hidraulico-jacare-2t",
+      "image": "macaco-hidraulico-jacare-2t.webp",
+      "name": "Macaco Hidráulico Jacaré com Maleta Sparta + Compressor de Ar Portátil",
+      "old": 548.99,
+      "price": 89.9,
+      "category": 3,
+      "variants": [
+        [
+          "Padrão",
+          89.9
+        ]
+      ]
+    },
+    {
+      "id": "ventilador-coluna-kit2",
+      "image": "ventilador-coluna-kit2.webp",
+      "name": "Kit 2 Ventiladores 40cm de Coluna Turbo 126W Preto – 110V ou 220V",
+      "old": 279.9,
+      "price": 109.9,
+      "category": 4,
+      "variants": [
+        [
+          "Padrão",
+          109.9
+        ]
+      ]
+    },
+    {
+      "id": "luminaria-solar-kit2",
+      "image": "luminaria-solar-kit2.webp",
+      "name": "Kit 2 Luminárias Poste Solar 2200W com Sensor de Presença e Controle Remoto",
+      "old": 249.9,
+      "price": 99.9,
+      "category": 4,
+      "variants": [
+        [
+          "Padrão",
+          99.9
+        ]
+      ]
+    },
+    {
+      "id": "lavadora-alta-pressao-soarfly",
+      "image": "lavadora-alta-pressao-soarfly.webp",
+      "name": "Lavadora de Alta Pressão Soarfly 4800W com Pistola e Mangueira de 7m",
+      "old": 299.9,
+      "price": 137.9,
+      "category": 1,
+      "variants": [
+        [
+          "Padrão",
+          137.9
+        ]
+      ]
+    },
+    {
+      "id": "kit-ferramentas-maleta-110-216",
+      "image": "kit-ferramentas-maleta-110-216.webp",
+      "name": "Jogo de Ferramentas Profissional 110 Peças com Maleta",
+      "old": 199.9,
+      "price": 79.9,
+      "category": 3,
+      "variants": [
+        [
+          "Padrão",
+          79.9
+        ]
+      ]
+    },
+    {
+      "id": "limpador-vapor-portatil-1500w",
+      "image": "limpador-vapor-portatil-1500w.webp",
+      "name": "Limpador a Vapor Portátil 1500W 3 Bar 1,2L Multiuso",
+      "old": 249.9,
+      "price": 109.9,
+      "category": 4,
+      "variants": [
+        [
+          "Padrão",
+          109.9
+        ]
+      ]
+    },
+    {
+      "id": "toldo-policarbonato-modular",
+      "image": "toldo-policarbonato-modular.webp",
+      "name": "Toldo de Policarbonato para Porta e Janela 1,00 a 3,50 m – Kit Completo",
+      "old": 314.96,
+      "price": 104.9,
+      "category": 2,
+      "variants": [
+        [
+          "1,00 m",
+          104.9
+        ]
+      ]
+    },
+    {
+      "id": "motor-portao-deslizante-rossi-600kg",
+      "image": "motor-portao-deslizante-rossi-600kg.webp",
+      "name": "Motor para Portão Deslizante Rossi DZ Nano Turbo 600 kg",
+      "old": 413.9,
+      "price": 137.9,
+      "category": 2,
+      "variants": [
+        [
+          "600 kg",
+          137.9
+        ]
+      ]
+    },
+    {
+      "id": "placas-adesivas-parede-marmore",
+      "image": "placas-adesivas-parede-marmore.webp",
+      "name": "Kit Placas Adesivas de Parede Efeito Mármore 30 x 60 cm - Autocolante, Lavável e Resistente à Água",
+      "old": 173.7,
+      "price": 57.9,
+      "category": 2,
+      "variants": [
+        [
+          "10 placas - Verde",
+          57.9
+        ]
+      ]
+    },
+    {
+      "id": "estante-aco-reforcada",
+      "image": "estante-aco-reforcada.webp",
+      "name": "Estante de Aço Galvanizado Reforçada de 3 a 6 Prateleiras Reguláveis",
+      "old": 199.9,
+      "price": 89.9,
+      "category": 2,
+      "variants": [
+        [
+          "3 prateleiras",
+          89.9
+        ]
+      ]
+    }
+  ],
+  "categories": [
+    [
+      "ofertas",
+      "Ofertas",
+      "◇"
+    ],
+    [
+      "ferramentas-eletricas",
+      "Ferramentas Elétricas",
+      "⚙"
+    ],
+    [
+      "construcao",
+      "Construção",
+      "▤"
+    ],
+    [
+      "mecanica",
+      "Mecânica",
+      "⚒"
+    ],
+    [
+      "acessorios",
+      "Acessórios",
+      "▦"
+    ]
+  ]
+}

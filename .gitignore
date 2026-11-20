@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+
+# Build do Cloudflare Workers
+dist/
+_worker.js
+
+# Cache e logs do Wrangler
+.wrangler/
+
+# Arquivos de ambiente
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
