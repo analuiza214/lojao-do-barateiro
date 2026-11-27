@@ -20,17 +20,21 @@ Abra http://localhost:3000. Requer Node 18 ou superior.
 - Checkout em três etapas que cria pedidos em `POST /api/orders`. O servidor recalcula os preços a partir do catálogo e salva em `data/orders.json`.
 - Consulta de pedido em `GET /api/orders/:id`.
 
-## O que você precisa preencher
+## Antes de publicar (obrigatório)
 
-| Área | Ação |
+| Onde | O que fazer |
 | --- | --- |
-| Dados legais | Substitua os campos `[PREENCHER ...]` do rodapé e das páginas de política em `app.js`. |
-| Pagamento | Implemente `payment.createCharge` em `server.js` com o gateway escolhido (Mercado Pago, Stripe etc.), receba webhooks assinados e atualize o status do pedido. |
-| Frete | Configure transportadoras, dimensões e regras reais em `shipping` no `server.js`. |
-| Catálogo | Troque preços, descrições, variantes e estoque pelos seus produtos em `catalog.js`. |
-| Pedidos | O arquivo JSON serve para início. Para produção, use um banco de dados e autenticação na consulta de pedidos. |
-| Publicação | Configure domínio, HTTPS e monitoramento. |
+| `store-config.js` | Preencha razão social, CNPJ, endereço, e-mail e WhatsApp **da sua empresa**. Enquanto faltar algo, uma faixa amarela aparece no localhost (nunca em produção). |
+| Pagamento | Defina `MP_ACCESS_TOKEN` com o Access Token de produção da **sua** conta Mercado Pago (local: variável de ambiente; Cloudflare: Settings > Variables and Secrets). O Pix é gerado pela API oficial e o recebedor é a sua empresa. |
+| Pedidos (Cloudflare) | Vincule um KV chamado `ORDERS_KV` para salvar pedidos e permitir a consulta de status. |
+| Frete | Ajuste `shippingDays` em `store-config.js` e `SHIPPING_DAYS` no servidor com o prazo real da sua transportadora. |
+| Produtos | Preencha descrição, conteúdo da caixa e ficha técnica em `PRODUCT_INFO` (`catalog.js`). Revise os preços "de": use o preço realmente praticado antes da promoção. |
+| Mais vendidos | Liste em `bestsellers` só os produtos que realmente vendem mais. |
+| Imagens | As fotos de produto vieram de outra loja. Troque por fotos do fornecedor (com autorização) ou próprias. |
 
-## Limitações
+## O que mudou
 
-O layout foi reconstruído a partir da estrutura pública do site de referência, sem equivalência pixel a pixel. As fotos e os banners vieram da vitrine pública da Loja das Ferramentas. O backend da referência não foi reproduzido.
+- Checkout com a identidade da loja, sem marca de terceiros, sem contador falso e com validação de CPF, CEP e telefone.
+- Pix real via API do Mercado Pago; a tela atualiza sozinha quando o pagamento é aprovado.
+- Políticas de troca, reembolso, envio, privacidade e termos escritas com base no CDC e na LGPD.
+- Faixa de confiança, garantia e WhatsApp na home, no produto e no checkout.

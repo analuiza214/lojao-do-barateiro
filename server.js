@@ -10,9 +10,19 @@ const DATA = path.join(ROOT, 'data', 'orders.json');
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'catalog.js'), 'utf8') + ';this.products=products;this.categories=categories;', ctx);
-const { products, categories } = ctx;
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'store-config.js'), 'utf8') + ';this.STORE=STORE;', ctx);
+const { products, categories, STORE } = ctx;
+// Frete Full cobrado no servidor com as mesmas regras do store-config.js (o navegador não decide o preço)
+const FULL = STORE.fullShipping || { enabled: false };
+const shippingFee = (method, subtotal, cep) => {
+  if (method !== 'full' || !FULL.enabled) return 0;
+  const digits = String(cep || '').replace(/\D/g, '');
+  if (FULL.cepPrefixes?.length && !FULL.cepPrefixes.some(p => digits.startsWith(p))) throw new Error('Envio Full indisponível para este CEP');
+  return Math.round(Math.min(FULL.max, Math.max(FULL.min, subtotal * FULL.pct / 100)) * 100) / 100;
+};
 const types = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.svg':'image/svg+xml', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.png':'image/png', '.webp':'image/webp', '.json':'application/json' };
-const STATIC = new Set(['index.html', 'app.js', 'catalog.js', 'styles.css']);
+const STATIC = new Set(['index.html', 'app.js', 'catalog.js', 'store-config.js', 'styles.css']);
+const SHIPPING_DAYS = process.env.SHIPPING_DAYS || '3 a 7 dias úteis';
 
 const readOrders = () => { try { return JSON.parse(fs.readFileSync(DATA, 'utf8')); } catch { return []; } };
 const writeOrders = orders => { fs.mkdirSync(path.dirname(DATA), { recursive: true }); fs.writeFileSync(DATA, JSON.stringify(orders, null, 2)); };
@@ -23,10 +33,42 @@ const body = req => new Promise((resolve, reject) => {
   req.on('end', () => { try { resolve(JSON.parse(raw || '{}')); } catch (e) { reject(e); } });
 });
 
+// Pagamento via Pix com a SUA conta Mercado Pago (API oficial).
+// Defina MP_ACCESS_TOKEN com o Access Token de produção da sua conta
+// (mercadopago.com.br/developers > Suas integrações > Credenciais).
+// O recebedor exibido no app do banco do cliente será a SUA razão social.
+const MP_API = 'https://api.mercadopago.com/v1/payments';
 const payment = {
   async createCharge(order) {
-    if (!process.env.PAYMENT_PROVIDER) return { provider: 'none', status: 'aguardando_configuracao_de_pagamento' };
-    throw new Error('Integre o gateway em payment.createCharge (ver README).');
+    const token = process.env.MP_ACCESS_TOKEN;
+    if (!token) return { provider: 'none', status: 'aguardando_configuracao_de_pagamento' };
+    const [first, ...rest] = String(order.customer.name).trim().split(/\s+/);
+    const r = await fetch(MP_API, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Idempotency-Key': order.id },
+      body: JSON.stringify({
+        transaction_amount: order.total,
+        description: `Pedido ${order.id.slice(0, 8).toUpperCase()}`,
+        payment_method_id: 'pix',
+        external_reference: order.id,
+        payer: { email: order.customer.email, first_name: first, last_name: rest.join(' ') || first, identification: { type: 'CPF', number: String(order.customer.cpf).replace(/\D/g, '') } }
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) { console.error('Mercado Pago:', data); throw new Error('Não foi possível gerar o Pix. Tente novamente.'); }
+    const tx = data.point_of_interaction?.transaction_data || {};
+    return { provider: 'mercadopago', id: data.id, status: data.status, qrCode: tx.qr_code, qrCodeBase64: tx.qr_code_base64, expiresAt: data.date_of_expiration };
+  },
+  async refresh(order) {
+    const token = process.env.MP_ACCESS_TOKEN;
+    if (!token || !order.payment?.id || order.status === 'pago') return order;
+    const r = await fetch(`${MP_API}/${order.payment.id}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) return order;
+    const data = await r.json();
+    order.payment.status = data.status;
+    if (data.status === 'approved') order.status = 'pago';
+    else if (['cancelled', 'rejected', 'expired'].includes(data.status)) order.status = 'cancelado';
+    return order;
   }
 };
 
@@ -36,7 +78,7 @@ async function shipping(cep) {
   const r = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
   const data = await r.json();
   if (data.erro) return { error: 'CEP não encontrado', status: 404 };
-  return { status: 200, address: { cep: data.cep, street: data.logradouro, district: data.bairro, city: data.localidade, state: data.uf }, price: 0, days: 7, label: 'Frete grátis (prazo de exemplo: configure transportadoras)' };
+  return { status: 200, address: { cep: data.cep, street: data.logradouro, district: data.bairro, city: data.localidade, state: data.uf }, price: 0, label: `Frete grátis · entrega em ${SHIPPING_DAYS}` };
 }
 
 function priceItems(items) {
@@ -61,12 +103,14 @@ async function api(req, res, url) {
     return send(res, status, rest);
   }
   if (req.method === 'POST' && pathname === '/api/orders') {
-    const { items, customer, address } = await body(req);
+    const { items, customer, address, shippingMethod } = await body(req);
     const required = ['name', 'email', 'cpf', 'phone'];
     if (!customer || required.some(k => !String(customer[k] || '').trim())) return send(res, 400, { error: 'Dados do cliente incompletos' });
     if (!address || !String(address.cep || '').trim() || !String(address.street || '').trim()) return send(res, 400, { error: 'Endereço incompleto' });
-    const { lines, total } = priceItems(items);
-    const order = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), status: 'pendente', items: lines, total, customer, address };
+    const { lines, total: subtotal } = priceItems(items);
+    const fee = shippingFee(shippingMethod, subtotal, address.cep);
+    const total = Math.round((subtotal + fee) * 100) / 100;
+    const order = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), status: 'pendente', items: lines, subtotal, shipping: { method: fee ? 'full' : 'free', fee }, total, customer, address };
     order.payment = await payment.createCharge(order);
     const orders = readOrders();
     orders.push(order);
@@ -74,8 +118,12 @@ async function api(req, res, url) {
     return send(res, 201, { id: order.id, total, status: order.status, payment: order.payment });
   }
   if (req.method === 'GET' && pathname.startsWith('/api/orders/')) {
-    const order = readOrders().find(o => o.id === pathname.split('/')[3]);
+    const orders = readOrders();
+    const order = orders.find(o => o.id === pathname.split('/')[3]);
     if (!order) return send(res, 404, { error: 'Pedido não encontrado' });
+    const before = order.status;
+    await payment.refresh(order).catch(() => {});
+    if (order.status !== before) writeOrders(orders);
     return send(res, 200, { id: order.id, status: order.status, total: order.total, items: order.items, createdAt: order.createdAt });
   }
   return send(res, 404, { error: 'Rota não encontrada' });
@@ -86,9 +134,9 @@ http.createServer(async (req, res) => {
   try {
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);
     const rel = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1));
-    const ok = STATIC.has(rel) || /^assets\/(products|banners)\/[\w-]+\.(svg|jpe?g|png|webp)$/.test(rel);
+    const ok = STATIC.has(rel) || /^assets\/(products|banners|brand)\/[\w-]+\.(svg|jpe?g|png|webp)$/.test(rel);
     if (!ok) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': types[path.extname(rel)] || 'application/octet-stream' });
+    res.writeHead(200, { 'Content-Type': types[path.extname(rel)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
     fs.createReadStream(path.join(ROOT, rel)).pipe(res);
   } catch (e) {
     send(res, 400, { error: e.message });

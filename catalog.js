@@ -49,3 +49,20 @@ const extraProductPhotos = {
   "placas-adesivas-parede-marmore": ["placas-adesivas-parede-marmore-foto-1.webp","placas-adesivas-parede-marmore-foto-2.webp","placas-adesivas-parede-marmore-foto-3.webp","placas-adesivas-parede-marmore-foto-4.webp","placas-adesivas-parede-marmore-foto-5.webp","placas-adesivas-parede-marmore-foto-6.webp","placas-adesivas-parede-marmore-foto-7.webp","placas-adesivas-parede-marmore-foto-8.webp","placas-adesivas-parede-marmore-foto-9.webp","placas-adesivas-parede-marmore-foto-10.webp"],
   "estante-aco-reforcada": ["estante-aco-reforcada-foto-1.webp","estante-aco-reforcada-foto-2.webp","estante-aco-reforcada-foto-3.webp","estante-aco-reforcada-foto-4.webp","estante-aco-reforcada-foto-5.webp","estante-aco-reforcada-foto-6.webp","estante-aco-reforcada-foto-7.webp","estante-aco-reforcada-foto-8.webp"]
 };
+
+// Descrição, destaques, conteúdo da caixa e ficha técnica de cada produto.
+// Preencha com os dados REAIS do fornecedor. Produtos sem entrada mostram só o nome.
+// Formato: 'id-do-produto': { description, highlights: [], box: [], specs: [['Campo','Valor']], faq: [['Pergunta','Resposta']] }
+// stats (opcional, SÓ números reais da SUA loja): { sold: 152, rating: 4.8, reviews: 41, rank: '1º em Escadas Telescópicas' }
+// Para o selo "MAIS VENDIDO", coloque o id do produto em STORE.bestsellers (store-config.js).
+const PRODUCT_INFO = {
+  'escada-telescopica': {
+    highlights: [
+      'Estrutura telescópica dobrável para guardar e transportar.',
+      'Travas independentes e pés antiderrapantes.',
+      'Degraus reforçados e cinta para manter a escada fechada.',
+      'Disponível em 3, 5 e 7 metros.'
+    ],
+    faq: [['Como guardar a escada?', 'Recolha a estrutura telescópica e prenda-a com a cinta de transporte.']]
+  }
+};

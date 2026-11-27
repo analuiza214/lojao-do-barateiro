@@ -21,7 +21,7 @@ function copyDirSync(src, dest) {
 }
 
 // Arquivos para a raiz do dist
-const files = ['index.html', 'app.js', 'catalog.js', 'styles.css', 'mercado-pago.png', '_worker.js'];
+const files = ['index.html', 'app.js', 'catalog.js', 'store-config.js', 'styles.css', '_worker.js'];
 // Pastas para copiar recursivamente
 const directories = ['assets'];
 

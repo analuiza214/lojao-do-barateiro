@@ -27,7 +27,7 @@ function priceItems(items) {
   return { lines, total: cents / 100 };
 }
 
-async function shipping(cep) {
+async function shipping(cep, env) {
   const clean = digits(cep);
   if (clean.length !== 8) return json({ error: 'CEP inválido' }, 400);
   try {
@@ -44,15 +44,75 @@ async function shipping(cep) {
       },
       price: 0,
       days: 7,
-      label: 'Frete grátis (prazo estimado: 3 a 7 dias úteis)'
+      label: `Frete grátis · entrega em ${env.SHIPPING_DAYS || '3 a 7 dias úteis'}`
     });
   } catch {
     return json({ error: 'Falha ao consultar CEP' }, 502);
   }
 }
 
+// Pix com a SUA conta Mercado Pago (API oficial). Configure o secret MP_ACCESS_TOKEN
+// em Workers & Pages > seu Worker > Settings > Variables and Secrets.
+const MP_API = 'https://api.mercadopago.com/v1/payments';
+async function createPix(order, env) {
+  if (!env.MP_ACCESS_TOKEN) return { provider: 'none', status: 'aguardando_configuracao_de_pagamento' };
+  const [first, ...rest] = String(order.customer.name).trim().split(/\s+/);
+  const r = await fetch(MP_API, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`, 'Content-Type': 'application/json', 'X-Idempotency-Key': order.id },
+    body: JSON.stringify({
+      transaction_amount: order.total,
+      description: `Pedido ${order.id.slice(0, 8).toUpperCase()}`,
+      payment_method_id: 'pix',
+      external_reference: order.id,
+      payer: { email: order.customer.email, first_name: first, last_name: rest.join(' ') || first, identification: { type: 'CPF', number: digits(order.customer.cpf) } }
+    })
+  });
+  const data = await r.json();
+  if (!r.ok) { console.error('Mercado Pago:', JSON.stringify(data)); throw new Error('Não foi possível gerar o Pix. Tente novamente.'); }
+  const tx = data.point_of_interaction?.transaction_data || {};
+  return { provider: 'mercadopago', id: data.id, status: data.status, qrCode: tx.qr_code, qrCodeBase64: tx.qr_code_base64, expiresAt: data.date_of_expiration };
+}
+
+async function getOrder(id, env, pid) {
+  // Sem KV: confirma direto no Mercado Pago pelo id do pagamento, conferindo que pertence a este pedido.
+  if (!env.ORDERS_KV) {
+    if (!pid || !env.MP_ACCESS_TOKEN || !/^\d+$/.test(pid)) return json({ error: 'Pedido não encontrado' }, 404);
+    const r = await fetch(`${MP_API}/${pid}`, { headers: { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` } });
+    if (!r.ok) return json({ error: 'Pedido não encontrado' }, 404);
+    const data = await r.json();
+    if (data.external_reference !== id) return json({ error: 'Pedido não encontrado' }, 404);
+    const status = data.status === 'approved' ? 'pago' : ['cancelled', 'rejected', 'expired'].includes(data.status) ? 'cancelado' : 'pendente';
+    return json({ id, status, total: data.transaction_amount });
+  }
+  const raw = await env.ORDERS_KV.get(`order:${id}`);
+  if (!raw) return json({ error: 'Pedido não encontrado' }, 404);
+  const order = JSON.parse(raw);
+  if (env.MP_ACCESS_TOKEN && order.payment?.id && order.status !== 'pago') {
+    const r = await fetch(`${MP_API}/${order.payment.id}`, { headers: { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` } });
+    if (r.ok) {
+      const data = await r.json();
+      const before = order.status;
+      order.payment.status = data.status;
+      if (data.status === 'approved') order.status = 'pago';
+      else if (['cancelled', 'rejected', 'expired'].includes(data.status)) order.status = 'cancelado';
+      if (order.status !== before) await env.ORDERS_KV.put(`order:${id}`, JSON.stringify(order));
+    }
+  }
+  return json({ id: order.id, status: order.status, total: order.total, items: order.items, createdAt: order.createdAt });
+}
+
+// Frete Full: mantenha igual ao fullShipping do store-config.js (ou sobrescreva pelas variáveis no painel).
+function shippingFee(method, subtotal, cep, env) {
+  if (method !== 'full') return 0;
+  const pct = Number(env.FULL_PCT || 12), min = Number(env.FULL_MIN || 14.9), max = Number(env.FULL_MAX || 39.9);
+  const prefixes = String(env.FULL_CEP_PREFIXES || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (prefixes.length && !prefixes.some(p => digits(cep).startsWith(p))) throw new Error('Envio Full indisponível para este CEP');
+  return Math.round(Math.min(max, Math.max(min, subtotal * pct / 100)) * 100) / 100;
+}
+
 async function handleOrder(request, env) {
-  const { items, customer, address, paymentMethod } = await request.json();
+  const { items, customer, address, shippingMethod } = await request.json();
   const required = ['name', 'email', 'cpf', 'phone'];
   if (!customer || required.some(k => !String(customer[k] || '').trim())) {
     return json({ error: 'Dados do cliente incompletos' }, 400);
@@ -61,27 +121,25 @@ async function handleOrder(request, env) {
     return json({ error: 'Endereço incompleto' }, 400);
   }
 
-  const { lines, total } = priceItems(items);
+  const { lines, total: subtotal } = priceItems(items);
+  const fee = shippingFee(shippingMethod, subtotal, address.cep, env);
+  const total = Math.round((subtotal + fee) * 100) / 100;
   const id = crypto.randomUUID();
-
-  // Lê variáveis do painel da Cloudflare caso configuradas (env.*)
-  const provider = paymentMethod || env.PAYMENT_PROVIDER || 'pix';
 
   const order = {
     id,
     createdAt: new Date().toISOString(),
     status: 'pendente',
     items: lines,
+    subtotal,
+    shipping: { method: fee ? 'full' : 'free', fee },
     total,
     customer,
     address,
-    payment: {
-      provider,
-      status: 'aguardando_pagamento'
-    }
+    payment: await createPix({ id, total, customer }, env)
   };
 
-  // Se você vincular um KV (ORDERS_KV) no painel da Cloudflare, salva o pedido:
+  // Vincule um KV chamado ORDERS_KV no painel da Cloudflare para salvar os pedidos.
   if (env.ORDERS_KV) {
     try {
       await env.ORDERS_KV.put(`order:${id}`, JSON.stringify(order));
@@ -117,11 +175,15 @@ export default {
         }
 
         if (request.method === 'GET' && path === '/api/shipping') {
-          return shipping(url.searchParams.get('cep') || '');
+          return shipping(url.searchParams.get('cep') || '', env);
         }
 
         if (request.method === 'POST' && path === '/api/orders') {
           return handleOrder(request, env);
+        }
+
+        if (request.method === 'GET' && path.startsWith('/api/orders/')) {
+          return getOrder(path.split('/')[3], env, url.searchParams.get('pid'));
         }
 
         return json({ error: 'Rota não encontrada' }, 404);
